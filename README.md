@@ -69,6 +69,39 @@ docker pull ghcr.io/nginx-quic/nginx-quic
 docker pull zengxs/nginx-quic
 ```
 
+## How to use this image?
+
+Just replace the official image name with this image name from your docker-compose file or
+other docker commands.
+
+Change your docker-compose file like this:
+
+```diff
+ version: '3.9'
+ services:
+   nginx:
+-    image: nginx:1.23.3
++    image: ghcr.io/nginx-quic/nginx-quic:1.23.3
+```
+
+Or change your docker command like this:
+
+```diff
+-docker run -d --name nginx --restart=always -v $PWD/conf.d:/etc/nginx/conf.d -p 80:80 -p 443:443 nginx:1.23.3
++docker run -d --name nginx --restart=always -v $PWD/conf.d:/etc/nginx/conf.d -p 80:80 -p 443:443 ghcr.io/nginx-quic/nginx-quic:1.23.3
+```
+
+> **NOTE:**
+>
+> The image is based on the official `debian` variant (default variant), so if you are
+> using the `alpine` variant before, may this image is not a drop-in replacement for you.
+>
+> But if you are not doing anything special in your image, you can just replace the image
+> name, and it should work.
+>
+> The `debian` variant is the default official variant, it not only has the best compatibility,
+> but also has the best performance. So I think it is the best choice for this image.
+
 ## Third-party modules
 
 | Module                                                  | Description                                    | Dynamic module file name                                              |
