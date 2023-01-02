@@ -87,8 +87,14 @@ Change your docker-compose file like this:
 Or change your docker command like this:
 
 ```diff
--docker run -d --name nginx --restart=always -v $PWD/conf.d:/etc/nginx/conf.d -p 80:80 -p 443:443 nginx:1.23.3
-+docker run -d --name nginx --restart=always -v $PWD/conf.d:/etc/nginx/conf.d -p 80:80 -p 443:443 ghcr.io/nginx-quic/nginx-quic:1.23.3
+ docker run -d \
+   --name nginx \
+   --restart=always \
+   -v $PWD/conf.d:/etc/nginx/conf.d \
+   -v $PWD/certs:/etc/nginx/certs \
+   -p 80:80 -p 443:443 \
+-  nginx:1.23.3
++  ghcr.io/nginx-quic/nginx-quic:1.23.3
 ```
 
 > **NOTE:**
