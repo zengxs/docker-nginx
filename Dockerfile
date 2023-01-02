@@ -1,20 +1,11 @@
-FROM nginx:1.23.3 AS builder
+ARG NGINX_VERSION=1.23.3
 
-COPY ./nginx-quic                   /usr/src/nginx-quic
-COPY ./libressl                     /usr/src/libressl
-COPY ./modules/njs                  /usr/src/njs
-COPY ./modules/ngx_brotli           /usr/src/ngx_brotli
-COPY ./modules/zstd-nginx-module    /usr/src/zstd-nginx-module
-COPY ./modules/nginx-module-vts     /usr/src/nginx-module-vts
-COPY ./modules/ngx_http_geoip2_module \
-                                    /usr/src/ngx_http_geoip2_module
-COPY ./modules/ngx-fancyindex       /usr/src/ngx-fancyindex
-COPY ./modules/ngx_http_substitutions_filter_module \
-                                    /usr/src/ngx_http_substitutions_filter_module
-COPY ./modules/headers-more-nginx-module \
-                                    /usr/src/headers-more-nginx-module
+# ==================================================================================================== #
+FROM nginx:${NGINX_VERSION} AS builder
 
-# install build dependencies
+# NOTE: add new dependencies in each stage, so that the cache is invalidated only when necessary
+
+# install build dependencies common to all builds
 RUN set -ex \
     && apt-get update -y \
     && apt-get install -y --no-install-recommends \
@@ -24,16 +15,10 @@ RUN set -ex \
         autoconf \
         libtool \
         ca-certificates \
-        curl \
-        libpcre3-dev \
-        zlib1g-dev \
-        libgd-dev \
-        libgeoip-dev \
-        libmaxminddb-dev \
-        libxslt1-dev \
-        libzstd-dev
+        curl
 
 # build libressl (instead of openssl for QUIC support)
+COPY ./libressl /usr/src/libressl
 RUN set -ex \
     && cd /usr/src/libressl \
     && ./autogen.sh \
@@ -46,7 +31,14 @@ RUN set -ex \
 # copy dynamic libraries to /usr/lib so nginx can find them
     && find /opt/libressl/lib -name '*.so.*' -exec cp -P {} /usr/lib \;
 
+# install build dependencies for nginx-quic
+RUN set -ex \
+    && apt-get install -y --no-install-recommends \
+        libpcre3-dev \
+        zlib1g-dev
+
 # build nginx-quic
+COPY ./nginx-quic /usr/src/nginx-quic
 RUN set -ex \
     && cd /usr/src/nginx-quic \
     && echo ./auto/configure \
@@ -68,7 +60,27 @@ RUN set -ex \
 # just replace /usr/sbin/nginx with the new binary
     && cp ./objs/nginx /usr/sbin/nginx
 
+# install build dependencies for additional dynamic modules
+RUN set -ex \
+    && apt-get install -y --no-install-recommends \
+        libgd-dev \
+        libgeoip-dev \
+        libmaxminddb-dev \
+        libxslt1-dev \
+        libzstd-dev
+
 # build dynamic modules
+COPY ./modules/njs                  /usr/src/njs
+COPY ./modules/ngx_brotli           /usr/src/ngx_brotli
+COPY ./modules/zstd-nginx-module    /usr/src/zstd-nginx-module
+COPY ./modules/nginx-module-vts     /usr/src/nginx-module-vts
+COPY ./modules/ngx_http_geoip2_module \
+                                    /usr/src/ngx_http_geoip2_module
+COPY ./modules/ngx-fancyindex       /usr/src/ngx-fancyindex
+COPY ./modules/ngx_http_substitutions_filter_module \
+                                    /usr/src/ngx_http_substitutions_filter_module
+COPY ./modules/headers-more-nginx-module \
+                                    /usr/src/headers-more-nginx-module
 RUN set -ex \
     && cd /usr/src/nginx-quic \
     && echo ./auto/configure \
@@ -97,8 +109,7 @@ RUN set -ex \
     && find ./objs -name 'ngx*.so' | xargs -I{} mv {} /usr/lib/nginx/modules/
 
 # ==================================================================================================== #
-
-FROM nginx:1.23.3
+FROM nginx:${NGINX_VERSION}
 
 # remove old modules
 RUN rm -rf /usr/lib/nginx/modules
