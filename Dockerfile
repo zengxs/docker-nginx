@@ -1,4 +1,4 @@
-ARG NGINX_VERSION=1.23.3
+ARG NGINX_VERSION=1.25.2
 
 # ==================================================================================================== #
 FROM nginx:${NGINX_VERSION} AS builder
@@ -15,64 +15,24 @@ RUN set -ex \
         autoconf \
         libtool \
         ca-certificates \
-        curl
-
-# build libressl (instead of openssl for QUIC support)
-COPY ./libressl /usr/src/libressl
-RUN set -ex \
-    && cd /usr/src/libressl \
-    && ./autogen.sh \
-    && ./configure \
-        --prefix=/opt/libressl \
-        --disable-tests \
-        --enable-shared=yes \
-        --enable-static=no \
-    && make -j$(nproc) install_sw \
-# copy dynamic libraries to /usr/lib so nginx can find them
-    && find /opt/libressl/lib -name '*.so.*' -exec cp -P {} /usr/lib \;
-
-# install build dependencies for nginx-quic
-RUN set -ex \
-    && apt-get install -y --no-install-recommends \
+        curl \
+        libssl-dev \
         libpcre3-dev \
         zlib1g-dev
-
-# build nginx-quic
-COPY ./nginx-quic /usr/src/nginx-quic
-RUN set -ex \
-    && cd /usr/src/nginx-quic \
-    && echo ./auto/configure \
-# use the same configure arguments as the official nginx build
-        $( \
-            /usr/sbin/nginx -V 2>&1 \
-            | grep 'configure arguments:' \
-            | sed 's#.*arguments: ##' \
-# but use libressl instead of openssl for QUIC
-            | sed "s#--with-cc-opt='#--with-cc-opt='-I/opt/libressl/include #" \
-            | sed "s#--with-ld-opt='#--with-ld-opt='-L/opt/libressl/lib #" \
-        ) \
-# add HTTP/3 and QUIC support
-        --with-http_v3_module \
-        --with-stream_quic_module \
-        | bash -x \
-# build nginx
-    && make -j$(nproc) \
-# just replace /usr/sbin/nginx with the new binary
-    && cp ./objs/nginx /usr/sbin/nginx
 
 # install build dependencies for additional dynamic modules
 RUN set -ex \
     && apt-get install -y --no-install-recommends \
+        libedit-dev \
         libgd-dev \
         libgeoip-dev \
         libmaxminddb-dev \
-        libxslt1-dev \
-        libzstd-dev
+        libxslt1-dev
 
-# build dynamic modules
+# copy dynamic modules source code
+COPY ./nginx                        /usr/src/nginx
 COPY ./modules/njs                  /usr/src/njs
 COPY ./modules/ngx_brotli           /usr/src/ngx_brotli
-COPY ./modules/zstd-nginx-module    /usr/src/zstd-nginx-module
 COPY ./modules/nginx-module-vts     /usr/src/nginx-module-vts
 COPY ./modules/ngx_http_geoip2_module \
                                     /usr/src/ngx_http_geoip2_module
@@ -81,8 +41,9 @@ COPY ./modules/ngx_http_substitutions_filter_module \
                                     /usr/src/ngx_http_substitutions_filter_module
 COPY ./modules/headers-more-nginx-module \
                                     /usr/src/headers-more-nginx-module
+
 RUN set -ex \
-    && cd /usr/src/nginx-quic \
+    && cd /usr/src/nginx \
     && echo ./auto/configure \
 # all dynamic modules need to be built with the same configure arguments as nginx
         $(/usr/sbin/nginx -V 2>&1 | grep 'configure arguments:' | sed 's#.*arguments: ##') \
@@ -94,7 +55,6 @@ RUN set -ex \
         --add-dynamic-module=/usr/src/njs/nginx \
 # third-party dynamic modules
         --add-dynamic-module=/usr/src/ngx_brotli \
-        --add-dynamic-module=/usr/src/zstd-nginx-module \
         --add-dynamic-module=/usr/src/nginx-module-vts \
         --add-dynamic-module=/usr/src/ngx_http_geoip2_module \
         --add-dynamic-module=/usr/src/ngx-fancyindex \
@@ -108,23 +68,51 @@ RUN set -ex \
 # move new modules to /usr/lib/nginx/modules
     && find ./objs -name 'ngx*.so' | xargs -I{} mv {} /usr/lib/nginx/modules/
 
+# build njs command-line utility
+RUN set -ex \
+    && cd /usr/src/njs \
+    && ./configure \
+    && make njs -j$(nproc) \
+    && cp ./build/njs /usr/bin/njs \
+    && chmod +x /usr/bin/njs
+
+# download GeoIP2 databases
+RUN set -ex \
+    && mkdir -p /usr/share/GeoIP \
+    && curl -sSL -o /usr/share/GeoIP/GeoLite2-ASN.mmdb \
+        https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-ASN.mmdb \
+    && curl -sSL -o /usr/share/GeoIP/GeoLite2-City.mmdb \
+        https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb \
+    && curl -sSL -o /usr/share/GeoIP/GeoLite2-Country.mmdb \
+        https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-Country.mmdb
+
+# ==================================================================================================== #
+FROM node AS njs-acme-builder
+
+WORKDIR /app
+COPY ./modules/njs-acme .
+
+RUN set -ex \
+    && npm install \
+    && npm run build
+
 # ==================================================================================================== #
 FROM nginx:${NGINX_VERSION}
 
 # remove old modules
 RUN rm -rf /usr/lib/nginx/modules
 
-# copy nginx binary and modules from builder
-COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
+# copy build artifacts from builder stage
 COPY --from=builder /usr/lib/nginx/modules /usr/lib/nginx/modules
-# copy libressl dynamic libraries from builder
-COPY --from=builder /usr/lib/libcrypto.so* /usr/lib/
-COPY --from=builder /usr/lib/libssl.so* /usr/lib/
+COPY --from=builder /usr/bin/njs /usr/bin/njs
+COPY --from=builder /usr/share/GeoIP /usr/share/GeoIP
+COPY --from=njs-acme-builder /app/dist/acme.js /usr/lib/nginx/njs_modules/acme.js
 
 # install runtime dependencies
 RUN set -ex \
     && apt-get update -y \
     && apt-get install -y --no-install-recommends \
+        libpcre3 \
         libgd3 \
         libgeoip1 \
         libxslt1.1 \
