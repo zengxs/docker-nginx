@@ -54,6 +54,10 @@ ENV NGX_OTEL_CMAKE_OPTS="-D NGX_OTEL_GRPC=package"
 RUN set -ex \
     && find /opt -name 'lib*.so*' -exec patchelf --set-soname {} {} \;
 
+# patch nginx-otel CMakeLists.txt find_package(protobuf) to find_package(Protobuf)
+RUN set -ex \
+    && sed -i 's/find_package(protobuf REQUIRED)/find_package(Protobuf REQUIRED)/' /usr/src/modules/nginx-otel/CMakeLists.txt
+
 RUN set -ex \
     && cd /usr/src/nginx \
     && echo ./auto/configure \
