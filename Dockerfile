@@ -14,11 +14,12 @@ RUN set -ex \
         automake \
         autoconf \
         libtool \
+        patchelf \
         ca-certificates \
         curl \
         libssl-dev \
         libpcre3-dev \
-        zlib1g-dev
+        zlib1g-dev 
 
 # install build dependencies for additional dynamic modules
 RUN set -ex \
@@ -43,9 +44,9 @@ RUN set -ex \
 ENV SREGEX_INC=/opt/sregex/include
 ENV SREGEX_LIB=/opt/sregex/lib
 
-# patch all .so file use absolute path as rpath
+# patch all .so file soname use absolute path
 RUN set -ex \
-    && find /opt -name 'lib*.so*' | xargs -I{} patchelf --set-rpath '$ORIGIN' {}
+    && find /opt -name 'lib*.so*' -exec patchelf --set-soname {} {} \;
 
 RUN set -ex \
     && cd /usr/src/nginx \
