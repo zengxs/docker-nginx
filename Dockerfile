@@ -38,8 +38,7 @@ COPY ./third-deps                   /usr/src/third-deps
 RUN set -ex \
 # sregex, required by replace-filter-nginx-module
     && cd /usr/src/third-deps/sregex \
-    && make install PREFIX=/usr \
-    && find /usr/ -name 'libsregex.so' -exec rm -f {} \;
+    && make install PREFIX=/usr
 
 ENV SREGEX_INC=/usr/include
 ENV SREGEX_LIB=/usr/lib
