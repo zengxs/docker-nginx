@@ -39,8 +39,8 @@ Change your docker-compose file like this:
  version: '3.9'
  services:
    nginx:
--    image: nginx:1.25.2
-+    image: zengxs/nginx:1.25.2
+-    image: nginx:1.27.2
++    image: zengxs/nginx:1.27.2
 ```
 
 Or change your docker command like this:
@@ -52,8 +52,8 @@ Or change your docker command like this:
    -v $PWD/conf.d:/etc/nginx/conf.d \
    -v $PWD/certs:/etc/nginx/certs \
    -p 80:80 -p 443:443 \
--  nginx:1.25.2
-+  zengxs/nginx:1.25.2
+-  nginx:1.27.2
++  zengxs/nginx:1.27.2
 ```
 
 ## Third-party modules
