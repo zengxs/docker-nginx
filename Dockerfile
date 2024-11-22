@@ -22,7 +22,9 @@ RUN set -ex \
         libpcre3-dev \
         zlib1g-dev \
         libmodsecurity-dev \
-        libgrpc++-dev
+        libgrpc-dev \
+        libgrpc++-dev \
+        libprotobuf-dev
 
 # install build dependencies for additional dynamic modules
 RUN set -ex \
@@ -46,6 +48,7 @@ RUN set -ex \
 
 ENV SREGEX_INC=/opt/sregex/include
 ENV SREGEX_LIB=/opt/sregex/lib
+ENV NGX_OTEL_CMAKE_OPTS="-D NGX_OTEL_GRPC=package"
 
 # patch all .so file soname use absolute path
 RUN set -ex \
@@ -135,7 +138,9 @@ RUN set -ex \
         libxslt1.1 \
         libmaxminddb0 \
         libzstd1 \
+        libgrpc29 \
         libgrpc++1.51 \
+        libprotobuf32 \
         libmodsecurity3 \
         modsecurity-crs \
     && rm -rf /var/lib/apt/lists/*
