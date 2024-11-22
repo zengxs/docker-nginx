@@ -13,7 +13,7 @@ jobs:
       NGINX_VERSION: 1.27.2
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
