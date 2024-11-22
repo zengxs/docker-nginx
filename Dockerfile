@@ -71,6 +71,7 @@ RUN set -ex \
         --add-dynamic-module=/usr/src/modules/ngx_devel_kit \
         --add-dynamic-module=/usr/src/modules/iconv-nginx-module \
         --add-dynamic-module=/usr/src/modules/ModSecurity-nginx \
+        --add-dynamic-module=/usr/src/modules/naxsi \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \
@@ -117,6 +118,7 @@ RUN rm -rf /usr/lib/nginx/modules
 COPY --from=builder /usr/lib/nginx/modules /usr/lib/nginx/modules
 COPY --from=builder /opt/sregex/lib /opt/sregex/lib
 COPY --from=builder /usr/bin/njs /usr/bin/njs
+COPY --from=builder usr/src/modules/naxsi/naxsi_rules /etc/nginx/naxsi
 COPY --from=builder /usr/share/GeoIP /usr/share/GeoIP
 COPY --from=njs-acme-builder /app/dist/acme.js /usr/lib/nginx/njs_modules/acme.js
 
