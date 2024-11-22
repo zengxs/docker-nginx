@@ -40,6 +40,6 @@
 [submodule "third-deps/sregex"]
 	path = third-deps/sregex
 	url = https://github.com/openresty/sregex.git
-[submodule "modules/zstd-nginx-module"]
-	path = modules/zstd-nginx-module
-	url = https://github.com/tokers/zstd-nginx-module.git
+[submodule "modules/ModSecurity-nginx"]
+	path = modules/ModSecurity-nginx
+	url = https://github.com/owasp-modsecurity/ModSecurity-nginx.git

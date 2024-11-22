@@ -19,7 +19,8 @@ RUN set -ex \
         curl \
         libssl-dev \
         libpcre3-dev \
-        zlib1g-dev 
+        zlib1g-dev \
+        libmodsecurity-dev
 
 # install build dependencies for additional dynamic modules
 RUN set -ex \
@@ -69,7 +70,7 @@ RUN set -ex \
         --add-dynamic-module=/usr/src/modules/headers-more-nginx-module \
         --add-dynamic-module=/usr/src/modules/ngx_devel_kit \
         --add-dynamic-module=/usr/src/modules/iconv-nginx-module \
-        --add-dynamic-module=/usr/src/modules/zstd-nginx-module \
+        --add-dynamic-module=/usr/src/modules/ModSecurity-nginx \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \
@@ -129,4 +130,6 @@ RUN set -ex \
         libxslt1.1 \
         libmaxminddb0 \
         libzstd1 \
+        libmodsecurity3 \
+        modsecurity-crs \
     && rm -rf /var/lib/apt/lists/*
