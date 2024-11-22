@@ -28,3 +28,6 @@
 [submodule "modules/njs-acme"]
 	path = modules/njs-acme
 	url = https://github.com/nginx/njs-acme.git
+[submodule "modules/ngx_http_proxy_connect_module"]
+	path = modules/ngx_http_proxy_connect_module
+	url = https://github.com/chobits/ngx_http_proxy_connect_module.git
