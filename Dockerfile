@@ -29,20 +29,17 @@ RUN set -ex \
         libmaxminddb-dev \
         libxslt1-dev
 
-# copy dynamic modules source code
+# copy nginx source code, modules, and third-party dependencies
 COPY ./nginx                        /usr/src/nginx
-COPY ./modules/njs                  /usr/src/njs
-COPY ./modules/ngx_brotli           /usr/src/ngx_brotli
-COPY ./modules/nginx-module-vts     /usr/src/nginx-module-vts
-COPY ./modules/ngx_http_geoip2_module \
-                                    /usr/src/ngx_http_geoip2_module
-COPY ./modules/ngx-fancyindex       /usr/src/ngx-fancyindex
-COPY ./modules/ngx_http_substitutions_filter_module \
-                                    /usr/src/ngx_http_substitutions_filter_module
-COPY ./modules/headers-more-nginx-module \
-                                    /usr/src/headers-more-nginx-module
-COPY ./modules/ngx_devel_kit        /usr/src/ngx_devel_kit
-COPY ./modules/iconv-nginx-module   /usr/src/iconv-nginx-module
+COPY ./modules                      /usr/src/modules
+COPY ./third-deps                   /usr/src/third-deps
+
+# build third-party dependencies
+RUN set -ex \
+# sregex, required by replace-filter-nginx-module
+    && cd /usr/src/third-deps/sregex \
+    && make install PREFIX=/usr \
+    && find /usr/ -name 'libsregex.so' -exec rm -f {} \;
 
 RUN set -ex \
     && cd /usr/src/nginx \
@@ -54,16 +51,17 @@ RUN set -ex \
         --with-http_image_filter_module=dynamic \
         --with-http_geoip_module=dynamic \
         --with-stream_geoip_module=dynamic \
-        --add-dynamic-module=/usr/src/njs/nginx \
+        --add-dynamic-module=/usr/src/modules/njs/nginx \
 # third-party dynamic modules
-        --add-dynamic-module=/usr/src/ngx_brotli \
-        --add-dynamic-module=/usr/src/nginx-module-vts \
-        --add-dynamic-module=/usr/src/ngx_http_geoip2_module \
-        --add-dynamic-module=/usr/src/ngx-fancyindex \
-        --add-dynamic-module=/usr/src/ngx_http_substitutions_filter_module \
-        --add-dynamic-module=/usr/src/headers-more-nginx-module \
-        --add-dynamic-module=/usr/src/ngx_devel_kit \
-        --add-dynamic-module=/usr/src/iconv-nginx-module \
+        --add-dynamic-module=/usr/src/modules/ngx_brotli \
+        --add-dynamic-module=/usr/src/modules/nginx-module-vts \
+        --add-dynamic-module=/usr/src/modules/ngx_http_geoip2_module \
+        --add-dynamic-module=/usr/src/modules/ngx-fancyindex \
+        --add-dynamic-module=/usr/src/modules/ngx_http_substitutions_filter_module \
+        --add-dynamic-module=/usr/src/modules/replace-filter-nginx-module \
+        --add-dynamic-module=/usr/src/modules/headers-more-nginx-module \
+        --add-dynamic-module=/usr/src/modules/ngx_devel_kit \
+        --add-dynamic-module=/usr/src/modules/iconv-nginx-module \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \
