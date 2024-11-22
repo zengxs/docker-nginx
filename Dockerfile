@@ -41,6 +41,9 @@ RUN set -ex \
     && make install PREFIX=/usr \
     && find /usr/ -name 'libsregex.so' -exec rm -f {} \;
 
+ENV SREGEX_INC=/usr/include
+ENV SREGEX_LIB=/usr/lib
+
 RUN set -ex \
     && cd /usr/src/nginx \
     && echo ./auto/configure \
