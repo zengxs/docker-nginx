@@ -43,6 +43,10 @@ RUN set -ex \
 ENV SREGEX_INC=/opt/sregex/include
 ENV SREGEX_LIB=/opt/sregex/lib
 
+# patch all .so file use absolute path as rpath
+RUN set -ex \
+    && find /opt -name 'lib*.so*' | xargs -I{} patchelf --set-rpath '$ORIGIN' {}
+
 RUN set -ex \
     && cd /usr/src/nginx \
     && echo ./auto/configure \
