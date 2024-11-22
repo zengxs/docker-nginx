@@ -41,6 +41,7 @@ COPY ./modules/ngx_http_substitutions_filter_module \
                                     /usr/src/ngx_http_substitutions_filter_module
 COPY ./modules/headers-more-nginx-module \
                                     /usr/src/headers-more-nginx-module
+COPY ./modules/iconv-nginx-module   /usr/src/iconv-nginx-module
 
 RUN set -ex \
     && cd /usr/src/nginx \
@@ -60,6 +61,7 @@ RUN set -ex \
         --add-dynamic-module=/usr/src/ngx-fancyindex \
         --add-dynamic-module=/usr/src/ngx_http_substitutions_filter_module \
         --add-dynamic-module=/usr/src/headers-more-nginx-module \
+        --add-dynamic-module=/usr/src/iconv-nginx-module \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \

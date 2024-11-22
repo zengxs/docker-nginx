@@ -28,3 +28,6 @@
 [submodule "modules/njs-acme"]
 	path = modules/njs-acme
 	url = https://github.com/nginx/njs-acme.git
+[submodule "modules/iconv-nginx-module"]
+	path = modules/iconv-nginx-module
+	url = https://github.com/calio/iconv-nginx-module.git
