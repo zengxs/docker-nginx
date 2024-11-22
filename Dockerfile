@@ -12,6 +12,7 @@ RUN set -ex \
         build-essential \
         git \
         cmake \
+        bison \
         automake \
         autoconf \
         libtool \
