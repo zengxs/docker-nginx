@@ -71,7 +71,7 @@ RUN set -ex \
         --add-dynamic-module=/usr/src/modules/ngx_devel_kit \
         --add-dynamic-module=/usr/src/modules/iconv-nginx-module \
         --add-dynamic-module=/usr/src/modules/ModSecurity-nginx \
-        --add-dynamic-module=/usr/src/modules/naxsi \
+        --add-dynamic-module=/usr/src/modules/naxsi/naxsi_src \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \
