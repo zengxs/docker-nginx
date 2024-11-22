@@ -11,6 +11,7 @@ RUN set -ex \
     && apt-get install -y --no-install-recommends \
         build-essential \
         git \
+        cmake \
         automake \
         autoconf \
         libtool \
@@ -20,7 +21,8 @@ RUN set -ex \
         libssl-dev \
         libpcre3-dev \
         zlib1g-dev \
-        libmodsecurity-dev
+        libmodsecurity-dev \
+        libgrpc++-dev
 
 # install build dependencies for additional dynamic modules
 RUN set -ex \
@@ -72,6 +74,7 @@ RUN set -ex \
         --add-dynamic-module=/usr/src/modules/iconv-nginx-module \
         --add-dynamic-module=/usr/src/modules/ModSecurity-nginx \
         --add-dynamic-module=/usr/src/modules/naxsi/naxsi_src \
+        --add-dynamic-module=/usr/src/modules/nginx-otel \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \
@@ -132,6 +135,7 @@ RUN set -ex \
         libxslt1.1 \
         libmaxminddb0 \
         libzstd1 \
+        libgrpc++1.51 \
         libmodsecurity3 \
         modsecurity-crs \
     && rm -rf /var/lib/apt/lists/*
