@@ -11,14 +11,22 @@ RUN set -ex \
     && apt-get install -y --no-install-recommends \
         build-essential \
         git \
+        cmake \
+        bison \
         automake \
         autoconf \
         libtool \
+        patchelf \
         ca-certificates \
         curl \
         libssl-dev \
         libpcre3-dev \
-        zlib1g-dev
+        zlib1g-dev \
+        libmodsecurity-dev \
+        libgrpc-dev \
+        libgrpc++-dev \
+        libprotobuf-dev \
+        protobuf-compiler-grpc
 
 # install build dependencies for additional dynamic modules
 RUN set -ex \
@@ -29,18 +37,28 @@ RUN set -ex \
         libmaxminddb-dev \
         libxslt1-dev
 
-# copy dynamic modules source code
+# copy nginx source code, modules, and third-party dependencies
 COPY ./nginx                        /usr/src/nginx
-COPY ./modules/njs                  /usr/src/njs
-COPY ./modules/ngx_brotli           /usr/src/ngx_brotli
-COPY ./modules/nginx-module-vts     /usr/src/nginx-module-vts
-COPY ./modules/ngx_http_geoip2_module \
-                                    /usr/src/ngx_http_geoip2_module
-COPY ./modules/ngx-fancyindex       /usr/src/ngx-fancyindex
-COPY ./modules/ngx_http_substitutions_filter_module \
-                                    /usr/src/ngx_http_substitutions_filter_module
-COPY ./modules/headers-more-nginx-module \
-                                    /usr/src/headers-more-nginx-module
+COPY ./modules                      /usr/src/modules
+COPY ./third-deps                   /usr/src/third-deps
+
+# build third-party dependencies
+RUN set -ex \
+# sregex, required by replace-filter-nginx-module
+    && cd /usr/src/third-deps/sregex \
+    && make install PREFIX=/opt/sregex
+
+ENV SREGEX_INC=/opt/sregex/include
+ENV SREGEX_LIB=/opt/sregex/lib
+ENV NGX_OTEL_CMAKE_OPTS="-D NGX_OTEL_GRPC=package"
+
+# patch all .so file soname use absolute path
+RUN set -ex \
+    && find /opt -name 'lib*.so*' -exec patchelf --set-soname {} {} \;
+
+# patch nginx-otel CMakeLists.txt find_package(protobuf) to find_package(Protobuf)
+RUN set -ex \
+    && sed -i 's/find_package(protobuf REQUIRED)/find_package(Protobuf REQUIRED)/' /usr/src/modules/nginx-otel/CMakeLists.txt
 
 RUN set -ex \
     && cd /usr/src/nginx \
@@ -52,14 +70,20 @@ RUN set -ex \
         --with-http_image_filter_module=dynamic \
         --with-http_geoip_module=dynamic \
         --with-stream_geoip_module=dynamic \
-        --add-dynamic-module=/usr/src/njs/nginx \
+        --add-dynamic-module=/usr/src/modules/njs/nginx \
 # third-party dynamic modules
-        --add-dynamic-module=/usr/src/ngx_brotli \
-        --add-dynamic-module=/usr/src/nginx-module-vts \
-        --add-dynamic-module=/usr/src/ngx_http_geoip2_module \
-        --add-dynamic-module=/usr/src/ngx-fancyindex \
-        --add-dynamic-module=/usr/src/ngx_http_substitutions_filter_module \
-        --add-dynamic-module=/usr/src/headers-more-nginx-module \
+        --add-dynamic-module=/usr/src/modules/ngx_brotli \
+        --add-dynamic-module=/usr/src/modules/nginx-module-vts \
+        --add-dynamic-module=/usr/src/modules/ngx_http_geoip2_module \
+        --add-dynamic-module=/usr/src/modules/ngx-fancyindex \
+        --add-dynamic-module=/usr/src/modules/ngx_http_substitutions_filter_module \
+        --add-dynamic-module=/usr/src/modules/replace-filter-nginx-module \
+        --add-dynamic-module=/usr/src/modules/headers-more-nginx-module \
+        --add-dynamic-module=/usr/src/modules/ngx_devel_kit \
+        --add-dynamic-module=/usr/src/modules/iconv-nginx-module \
+        --add-dynamic-module=/usr/src/modules/ModSecurity-nginx \
+        --add-dynamic-module=/usr/src/modules/naxsi/naxsi_src \
+        --add-dynamic-module=/usr/src/modules/nginx-otel \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \
@@ -70,7 +94,7 @@ RUN set -ex \
 
 # build njs command-line utility
 RUN set -ex \
-    && cd /usr/src/njs \
+    && cd /usr/src/modules/njs \
     && ./configure \
     && make njs -j$(nproc) \
     && cp ./build/njs /usr/bin/njs \
@@ -104,7 +128,9 @@ RUN rm -rf /usr/lib/nginx/modules
 
 # copy build artifacts from builder stage
 COPY --from=builder /usr/lib/nginx/modules /usr/lib/nginx/modules
+COPY --from=builder /opt/sregex/lib /opt/sregex/lib
 COPY --from=builder /usr/bin/njs /usr/bin/njs
+COPY --from=builder usr/src/modules/naxsi/naxsi_rules /etc/nginx/naxsi
 COPY --from=builder /usr/share/GeoIP /usr/share/GeoIP
 COPY --from=njs-acme-builder /app/dist/acme.js /usr/lib/nginx/njs_modules/acme.js
 
@@ -118,4 +144,9 @@ RUN set -ex \
         libxslt1.1 \
         libmaxminddb0 \
         libzstd1 \
+        libgrpc29 \
+        libgrpc++1.51 \
+        libprotobuf32 \
+        libmodsecurity3 \
+        modsecurity-crs \
     && rm -rf /var/lib/apt/lists/*
