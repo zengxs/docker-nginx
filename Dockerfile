@@ -38,10 +38,10 @@ COPY ./third-deps                   /usr/src/third-deps
 RUN set -ex \
 # sregex, required by replace-filter-nginx-module
     && cd /usr/src/third-deps/sregex \
-    && make install PREFIX=/usr
+    && make install PREFIX=/opt/sregex
 
-ENV SREGEX_INC=/usr/include
-ENV SREGEX_LIB=/usr/lib
+ENV SREGEX_INC=/opt/sregex/include
+ENV SREGEX_LIB=/opt/sregex/lib
 
 RUN set -ex \
     && cd /usr/src/nginx \
@@ -74,7 +74,7 @@ RUN set -ex \
 
 # build njs command-line utility
 RUN set -ex \
-    && cd /usr/src/njs \
+    && cd /usr/src/modules/njs \
     && ./configure \
     && make njs -j$(nproc) \
     && cp ./build/njs /usr/bin/njs \
@@ -108,6 +108,7 @@ RUN rm -rf /usr/lib/nginx/modules
 
 # copy build artifacts from builder stage
 COPY --from=builder /usr/lib/nginx/modules /usr/lib/nginx/modules
+COPY --from=builder /opt/sregex/lib /opt/sregex/lib
 COPY --from=builder /usr/bin/njs /usr/bin/njs
 COPY --from=builder /usr/share/GeoIP /usr/share/GeoIP
 COPY --from=njs-acme-builder /app/dist/acme.js /usr/lib/nginx/njs_modules/acme.js
