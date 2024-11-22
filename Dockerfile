@@ -69,6 +69,7 @@ RUN set -ex \
         --add-dynamic-module=/usr/src/modules/headers-more-nginx-module \
         --add-dynamic-module=/usr/src/modules/ngx_devel_kit \
         --add-dynamic-module=/usr/src/modules/iconv-nginx-module \
+        --add-dynamic-module=/usr/src/modules/ngx_http_google_filter_module \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \
