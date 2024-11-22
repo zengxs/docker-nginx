@@ -25,7 +25,8 @@ RUN set -ex \
         libmodsecurity-dev \
         libgrpc-dev \
         libgrpc++-dev \
-        libprotobuf-dev
+        libprotobuf-dev \
+        protobuf-compiler-grpc
 
 # install build dependencies for additional dynamic modules
 RUN set -ex \
