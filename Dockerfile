@@ -1,4 +1,4 @@
-ARG NGINX_VERSION=1.25.2
+ARG NGINX_VERSION
 
 # ==================================================================================================== #
 FROM nginx:${NGINX_VERSION} AS builder
@@ -84,6 +84,7 @@ RUN set -ex \
         --add-dynamic-module=/usr/src/modules/ModSecurity-nginx \
         --add-dynamic-module=/usr/src/modules/naxsi/naxsi_src \
         --add-dynamic-module=/usr/src/modules/nginx-otel \
+        --add-dynamic-module=/usr/src/modules/websockify-nginx-module \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \
@@ -111,12 +112,13 @@ RUN set -ex \
         https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-Country.mmdb
 
 # ==================================================================================================== #
-FROM node AS njs-acme-builder
+FROM node AS njs-builder
 
 WORKDIR /app
-COPY ./modules/njs-acme .
+COPY ./njs-modules .
 
 RUN set -ex \
+    && cd njs-acme \
     && npm install \
     && npm run build
 
@@ -132,7 +134,7 @@ COPY --from=builder /opt/sregex/lib /opt/sregex/lib
 COPY --from=builder /usr/bin/njs /usr/bin/njs
 COPY --from=builder usr/src/modules/naxsi/naxsi_rules /etc/nginx/naxsi
 COPY --from=builder /usr/share/GeoIP /usr/share/GeoIP
-COPY --from=njs-acme-builder /app/dist/acme.js /usr/lib/nginx/njs_modules/acme.js
+COPY --from=njs-builder /app/njs-acme/dist/acme.js /usr/lib/nginx/njs_modules/acme.js
 
 # install runtime dependencies
 RUN set -ex \
@@ -149,4 +151,5 @@ RUN set -ex \
         libprotobuf32 \
         libmodsecurity3 \
         modsecurity-crs \
+    && ln -s /usr/lib/nginx/modules /etc/nginx/modules \
     && rm -rf /var/lib/apt/lists/*
