@@ -26,7 +26,7 @@
 	path = modules/ngx-fancyindex
 	url = https://github.com/aperezdc/ngx-fancyindex.git
 [submodule "modules/njs-acme"]
-	path = modules/njs-acme
+	path = njs-modules/njs-acme
 	url = https://github.com/nginx/njs-acme.git
 [submodule "modules/iconv-nginx-module"]
 	path = modules/iconv-nginx-module
