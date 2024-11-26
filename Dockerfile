@@ -84,6 +84,7 @@ RUN set -ex \
         --add-dynamic-module=/usr/src/modules/ModSecurity-nginx \
         --add-dynamic-module=/usr/src/modules/naxsi/naxsi_src \
         --add-dynamic-module=/usr/src/modules/nginx-otel \
+        --add-dynamic-module=/usr/src/modules/websockify-nginx-module \
         | bash -x \
 # build modules
     && make modules -j$(nproc) \
@@ -150,4 +151,5 @@ RUN set -ex \
         libprotobuf32 \
         libmodsecurity3 \
         modsecurity-crs \
+    && ln -s /usr/lib/nginx/modules /etc/nginx/modules \
     && rm -rf /var/lib/apt/lists/*
